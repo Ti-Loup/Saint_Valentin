@@ -28,6 +28,7 @@ class ValentineApp{
     SDL_Renderer *renderer = nullptr;
     SDL_Texture *spritesheet = nullptr;
     SDL_Texture *spriteDeer = nullptr;//pour rajouter une image de cerf
+    SDL_Texture *spriteHeart = nullptr; //Pour rajouter les images de coeurs
 
     float animTimer = 0.0f;
     int currentCol = ANIM_COL_BEGIN;
@@ -52,7 +53,7 @@ class ValentineApp{
     float currentFPS = 0.0f;
 
     float animationRotation = 45.0f;//l'animation tourne a 45 degree
-
+    float animationHeartRotation = -25.0f;//animationtourne a . degree par la gaucher
     //Pour les boutons
     SDL_FRect YesButtonRect = { 250, 600, 200, 60 };
     SDL_FRect NoButtonRect = { 550, 600, 200, 60 };
@@ -108,6 +109,18 @@ class ValentineApp{
         }
         //scale pour l'image du cerf
         SDL_SetTextureScaleMode(spriteDeer, SDL_SCALEMODE_NEAREST);
+        if (TTF_Init() == false)
+        {
+            SDL_LogCritical(1, "SDL_ttf failed to initialize! %s", SDL_GetError());
+            abort();
+        }
+        //Rajout des coeurs
+        spriteHeart = IMG_LoadTexture(renderer, "assets/spritesheetheart.png");
+        if (spriteHeart == nullptr) {
+            SDL_LogWarn(0, "SDL_image failed to load texture , assets/spritesheetheart.png", SDL_GetError());
+        }
+        //Scale de l'image coeurs
+        SDL_SetTextureScaleMode(spriteHeart, SDL_SCALEMODE_NEAREST);
         if (TTF_Init() == false)
         {
             SDL_LogCritical(1, "SDL_ttf failed to initialize! %s", SDL_GetError());
@@ -183,6 +196,7 @@ class ValentineApp{
             TTF_CloseFont(font);
             SDL_DestroyTexture(spritesheet);
             SDL_DestroyTexture(spriteDeer);//detruit le cerf
+            SDL_DestroyTexture(spriteHeart); //destruction du coeur
             SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
             TTF_Quit();
@@ -338,11 +352,82 @@ class ValentineApp{
             };
             SDL_RenderTexture(renderer,spriteDeer,&srcDeer, &dstDeer );
         }
+        if (spriteHeart != nullptr) {
+ // Calculer la taille d'une seule sprite (1 cerf)
+            float textureW;//Width
+            float textureH;//Height
+            SDL_GetTextureSize(spriteHeart, &textureW, &textureH);//prend l'adresse de textureW/H
+
+            float oneHeartW = textureW / 5.3f; // 4 colonnes
+            float oneHeartH = textureH / 3.0f; // 2 lignes
+
+            // Choisir QUEL cerf afficher
+            float targetCol = 0;//4 colognes (0,1,2,3)
+            float targetRow = 0;//2 lignes (0,1)
+            float HeartX; // Position X
+            float HeartY; // Position Y
+            float scaleFactor;//l'agrantissement
+
+            if (hasClickedOnYes) {
+            targetCol = 1;
+            targetRow = 0;
+            HeartX = 120.0f;
+            HeartY = 120.0f;
+            scaleFactor = 0.35f;
+            }
+            else if (hasClickedOnNoAThirdTime) {
+                targetCol = 2;
+                targetRow = 2;
+                HeartX = 180.0f;
+                HeartY = 120.0f;
+                scaleFactor = 0.6f;
+            }else if (hasClickedOnNoTwice){
+                targetCol = 4;
+                targetRow = 1;
+                HeartX = 250.0f;
+                HeartY = 150.0f;
+                scaleFactor = 0.30f;
+            }
+            else if (hasClickedOnNoOnce) {
+                targetCol = 3;
+                targetRow = 2;
+                HeartX = 180.0f;
+                HeartY = 130.0f;
+                scaleFactor = 0.30f;
+            }
+
+            else {
+                targetCol = 3;
+                targetRow = 0;
+                HeartX = 140.0f;
+                HeartY = 110.0f;
+                scaleFactor = 0.30f;
+            }
+            SDL_FRect srcHeart = {
+                targetCol * oneHeartW,  // X dans l'image
+                targetRow * oneHeartH,  // Y dans l'image
+                oneHeartW,              // Largeur d'un cerf
+                oneHeartH               // Hauteur d'un cerf
+            };
+            SDL_FRect dstHeart = {
+                HeartX,
+                HeartY,
+                oneHeartW * scaleFactor, //
+                oneHeartH * scaleFactor  // Hauteur
+            };
+            //Le point centre de l'animation
+            SDL_FPoint centerHeart = {
+                dstHeart.w / 1.0f,
+                dstHeart.h / 1.0f
+            };
+
+            SDL_RenderTextureRotated(renderer, spriteHeart, &srcHeart, &dstHeart, animationHeartRotation, &centerHeart, SDL_FLIP_NONE);
+        }
     }
     //Pour le titre
     void RenderTitle() {
 
-        TTF_DrawRendererText(Title, 200, 250);
+        TTF_DrawRendererText(Title, 200, 200);
     }
 
     //Pour les boutons Yes & No                                                     //r,g,b du bouton
@@ -432,7 +517,7 @@ class ValentineApp{
             }
             else {
                 if (hasClickedOnNoAThirdTime) {
-                    TTF_DrawRendererText(hasClickedOnNoAThirdTimeText, 200, 300);
+                    TTF_DrawRendererText(hasClickedOnNoAThirdTimeText, 350, 200);
                     RenderAnimation();
                 }
                 else {
@@ -447,7 +532,7 @@ class ValentineApp{
                     }
                     TTF_DrawRendererText(fpsText, 10, 10);
                     if (hasClickedOnNoTwice) {
-                        TTF_DrawRendererText(hasClickedOnNoTwiceText, 250, 200);//Affichage du texte no twice
+                        TTF_DrawRendererText(hasClickedOnNoTwiceText, 330, 200);//Affichage du texte no twice
                         RenderAnimation();
                     }
                     else if (hasClickedOnNoOnce) {
